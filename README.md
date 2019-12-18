@@ -1,6 +1,6 @@
 ﻿# saal
 
-Assignment - To-Do System
+To-Do System
 
 The goal is to create a system to manage To-Dos which includes the following functions:
 
