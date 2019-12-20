@@ -14,5 +14,4 @@ Further information
 
 ● I have decided build it in this way because it is pretty simple app with efficient design.
 
-<img src="Categories.jpg" width="200" />
-<img src="Todos.jpg" width="200" />
+<img src="Categories.jpg" width="300" /> <img src="Todos.jpg" width="300" />
