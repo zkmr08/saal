@@ -1,65 +1,123 @@
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar, ScrollView, AsyncStorage, Dimensions, Platform, TextInput, StyleSheet, Text, View } from 'react-native';
+import { StatusBar, TouchableOpacity, Image, ScrollView, AsyncStorage, Dimensions, Platform, TextInput, StyleSheet, Text, View } from 'react-native';
 import { AppLoading } from 'expo';
-import TodoList from './components/TodoList';
+import CategoryList from './components/CategoryList';
+import TodoList from './components/TodoList'
 import uuidv1 from 'uuid/v1';
-const { height, width } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 export default class App extends React.Component {
   state = {
-    newTodoItem: '',
-    dataIsReady: false,
+    item: '',
+    categoriesAreReady: false,
+    todosAreReady: false,
+    categories: {},
     todos: {},
+    isSelectedCategory: false,
+    selectedCategory: '',
   }
-  saveTodos = newToDos => {
-    const saveTodos = AsyncStorage.setItem('todos', JSON.stringify(newToDos));
+  saveCategories = newCategories => {
+    const saveCategories = AsyncStorage.setItem('categories', JSON.stringify(newCategories));
   };
-  newTodoItemController = textValue => {
+  saveTodos = (selectedCategory, newTodos) => {
+    const saveTodos = AsyncStorage.setItem(selectedCategory, JSON.stringify(newTodos))
+  }
+  inputController = textValue => {
     this.setState({
-      newTodoItem: textValue,
+      item: textValue,
     })
   }
   componentDidMount = () => {
-    this.loadTodos();
+    this.loadCategories();
   };
 
-  loadTodos = async () => {
+  loadCategories = async () => {
     try {
-      const getTodos = await AsyncStorage.getItem('todos');
-      const parsedTodos = JSON.parse(getTodos);
-      this.setState({ dataIsReady: true, todos: parsedTodos || {} });
+      const getCategories = await AsyncStorage.getItem('categories');
+      const parsedCategories = JSON.parse(getCategories);
+      this.setState({ categoriesAreReady: true, categories: parsedCategories || {} });
     } catch (err) {
       console.log(err);
     }
   };
 
-  addTodo = () => {
-    const { newTodoItem } = this.state;
-    if (newTodoItem !== '') {
+  loadTodos = async () => {
+    const { selectedCategory } = this.state
+    try {
+      const getTodos = await AsyncStorage.getItem(selectedCategory);
+      const parsedTodos = JSON.parse(getTodos);
+      this.setState({ todosAreReady: true, todos: parsedTodos || {} })
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  addCategory = () => {
+    const { item } = this.state;
+    if (item !== '') {
       this.setState(prevState => {
         const ID = uuidv1();
-        const newToDoObject = {
+        const newCategoryObject = {
           [ID]: {
             id: ID,
-            isCompleted: false,
-            textValue: newTodoItem,
+            textValue: item,
             createdAt: Date.now()
           }
         };
         const newState = {
           ...prevState,
-          newTodoItem: '',
-          todos: {
-            ...prevState.todos,
-            ...newToDoObject
+          item: '',
+          categories: {
+            ...prevState.categories,
+            ...newCategoryObject
           }
         };
-        this.saveTodos(newState.todos);
+        this.saveCategories(newState.categories);
         return { ...newState };
       });
     }
   };
+  addTodo = () => {
+    const { item, selectedCategory } = this.state;
+    if (item !== '') {
+      this.setState(prevState => {
+        const ID = uuidv1();
+        const newTodoObject = {
+          [ID]: {
+            id: ID,
+            isCompleted: false,
+            textValue: item,
+            createdAt: Date.now(),
+            category: selectedCategory,
+          }
+        };
+        const newState = {
+          ...prevState,
+          item: '',
+          todos: {
+            ...prevState.todos,
+            ...newTodoObject
+          }
+        };
+        this.saveTodos(selectedCategory, newState.todos);
+        return { ...newState };
+      });
+    }
+  };
+  deleteCategory = id => {
+    this.setState(prevState => {
+      const categories = prevState.categories;
+      delete categories[id];
+      const newState = {
+        ...prevState,
+        ...categories
+      };
+      this.saveCategories(newState.category);
+      return { ...newState };
+    });
+  };
   deleteTodo = id => {
+    const { selectedCategory } = this.state;
     this.setState(prevState => {
       const todos = prevState.todos;
       delete todos[id];
@@ -67,11 +125,13 @@ export default class App extends React.Component {
         ...prevState,
         ...todos
       };
-      this.saveTodos(newState.todos);
+      this.saveTodos(selectedCategory, newState.todos);
       return { ...newState };
     });
   };
+
   inCompleteTodo = id => {
+    const { selectedCategory } = this.state;
     this.setState(prevState => {
       const newState = {
         ...prevState,
@@ -83,12 +143,13 @@ export default class App extends React.Component {
           }
         }
       };
-      this.saveTodos(newState.todos);
+      this.saveTodos(selectedCategory, newState.todos);
       return { ...newState };
     });
   };
 
   completeTodo = id => {
+    const { selectedCategory } = this.state;
     this.setState(prevState => {
       const newState = {
         ...prevState,
@@ -100,12 +161,30 @@ export default class App extends React.Component {
           }
         }
       };
-      this.saveTodos(newState.todos);
+      this.saveTodos(selectedCategory, newState.todos);
+      return { ...newState };
+    });
+  };
+
+  updateCategory = (id, textValue) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        categories: {
+          ...prevState.categories,
+          [id]: {
+            ...prevState.categories[id],
+            textValue: textValue
+          }
+        }
+      };
+      this.saveCategories(newState.categories);
       return { ...newState };
     });
   };
 
   updateTodo = (id, textValue) => {
+    const { selectedCategory } = this.state;
     this.setState(prevState => {
       const newState = {
         ...prevState,
@@ -117,13 +196,30 @@ export default class App extends React.Component {
           }
         }
       };
-      this.saveTodos(newState.todos);
+      this.saveTodos(selectedCategory, newState.todos);
       return { ...newState };
     });
   };
+
+  selectedCategory = (selectedValue) => {
+    this.setState({
+      isSelectedCategory: true,
+      selectedCategory: selectedValue,
+      todos: {},
+    }, () => { this.loadTodos() }
+    );
+  }
+
+  backToCategory = () => {
+    this.setState({
+      isSelectedCategory: false,
+      selectedCategory: '',
+    })
+  }
+
   render() {
-    let { newTodoItem, dataIsReady, todos } = this.state;
-    if (!dataIsReady) {
+    let { item, isSelectedCategory, categoriesAreReady, todos, categories, selectedCategory } = this.state;
+    if (!categoriesAreReady) {
       return <AppLoading />
     }
     return (
@@ -131,20 +227,40 @@ export default class App extends React.Component {
         colors={['#DA4453', '#89216B']}
         style={styles.container}>
         <StatusBar barStyle="light-content" />
-        <Text style={styles.appTitle}>Todo App</Text>
+
+        {isSelectedCategory ? (
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+          }}>
+            <TouchableOpacity activeOpacity={0.5} onPress={this.backToCategory}>
+              <Image
+                source={require('./back-button-image.png')}
+                style={styles.ImageIconStyle}
+              />
+            </TouchableOpacity>
+            <Text style={styles.appTitle}>{selectedCategory}</Text>
+          </View>
+        ) : (
+            <Text style={styles.appTitle}>Categories</Text>
+          )}
         <View style={styles.card}>
           <TextInput
             style={styles.input}
-            placeholder={'Add an item!'}
-            value={newTodoItem}
-            onSubmitEditing={this.addTodo}
-            onChangeText={this.newTodoItemController}
+            placeholder={isSelectedCategory ? 'Add a Todo!' : 'Add a Category'}
+            value={item}
+            onSubmitEditing={isSelectedCategory ? this.addTodo : this.addCategory}
+            onChangeText={this.inputController}
             placeholderTextColor={'#999'}
             returnKeyType={'done'}
             autoCorrect={false}
           />
           <ScrollView contentContainerStyle={styles.listContainer}>
-            {Object.values(todos).map(todo => <TodoList key={todo.id} {...todo} deleteTodo={this.deleteTodo} updateTodo={this.updateTodo} inCompleteTodo={this.inCompleteTodo} completeTodo={this.completeTodo} />)}
+            {isSelectedCategory ? (
+              Object.values(todos).map(todo => <TodoList key={todo.id} {...todo} deleteTodo={this.deleteTodo} loadTodos={this.loadTodos} updateTodo={this.updateTodo} inCompleteTodo={this.inCompleteTodo} completeTodo={this.completeTodo} />)
+            ) : (
+                Object.values(categories).map(category => <CategoryList key={category.id} {...category} selectedCategory={this.selectedCategory} deleteCategory={this.deleteCategory} updateCategory={this.updateCategory} />)
+              )}
           </ScrollView>
         </View>
       </LinearGradient>
@@ -157,16 +273,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#f23657',
     flex: 1,
     alignItems: 'center',
-    //justifyContent: 'center',
+  },
+  ImageIconStyle: {
+    width: 50,
+    height: 50,
+    marginTop: 60,
   },
   appTitle: {
     color: '#fff',
     fontSize: 36,
     marginTop: 60,
     marginBottom: 30,
-    fontWeight: '300'
+    fontWeight: '300',
   },
-
   card: {
     backgroundColor: '#fff',
     flex: 1,
@@ -201,13 +320,12 @@ const styles = StyleSheet.create({
       }
     })
   },
-  input: {
-    padding: 20,
-    borderBottomColor: '#bbb',
-    borderBottomWidth: 1,
-    fontSize: 24
-  },
   listContainer: {
     alignItems: 'center'
-  }
+  },
+  SeparatorLine: {
+    backgroundColor: '#fff',
+    width: 1,
+    height: 40,
+  },
 });

@@ -11,38 +11,20 @@ import PropTypes from 'prop-types';
 
 const { width } = Dimensions.get('window');
 
-class TodoList extends Component {
+class CategoryList extends Component {
     static propTypes = {
         textValue: PropTypes.string.isRequired,
-        isCompleted: PropTypes.bool.isRequired,
-        deleteTodo: PropTypes.func.isRequired,
+        selectedCategory: PropTypes.func.isRequired,
         id: PropTypes.string.isRequired,
-        inCompleteTodo: PropTypes.func.isRequired,
-        completeTodo: PropTypes.func.isRequired,
-        updateTodo: PropTypes.func.isRequired,
-        loadTodos: PropTypes.func.isRequired,
+        deleteCategory: PropTypes.func.isRequired,
+        updateCategory: PropTypes.func.isRequired,
     };
     constructor(props) {
         super(props);
-
         this.state = {
             isEditing: false,
-            todoValue: props.textValue
+            categoryValue: props.textValue
         };
-    }
-
-    componentDidMount = () => {
-        const { loadTodos } = this.props;
-        loadTodos();
-    };
-
-    toggleTodo = () => {
-        const { isCompleted, inCompleteTodo, completeTodo, id } = this.props;
-        if (isCompleted) {
-            inCompleteTodo(id);
-        } else {
-            completeTodo(id);
-        }
     }
     startEditing = () => {
         this.setState({
@@ -50,34 +32,30 @@ class TodoList extends Component {
         });
     }
     controlInput = textValue => {
-        this.setState({ todoValue: textValue })
+        this.setState({ categoryValue: textValue })
     }
     finishEditing = () => {
-        const { todoValue } = this.state;
-        const { id, updateTodo } = this.props;
-        updateTodo(id, todoValue);
+        const { categoryValue } = this.state;
+        const { id, updateCategory } = this.props;
+        updateCategory(id, categoryValue);
         this.setState({
-            isEditing: false,
+            isEditing: false
         });
     }
 
     render() {
-        const { isEditing, todoValue } = this.state
-        const { textValue, id, deleteTodo, isCompleted } = this.props
+        const { isEditing, categoryValue } = this.state
+        const { textValue, id, deleteCategory, selectedCategory } = this.props
         return (
             <View style={styles.container}>
                 <View style={styles.rowContainer}>
-                    <TouchableOpacity onPress={this.toggleTodo}>
-                        <View style={[styles.circle, isCompleted ? styles.completeCircle : styles.incompleteCircle]} />
-                    </TouchableOpacity>
                     {
                         isEditing ? (
                             <TextInput
-                                value={todoValue}
+                                value={categoryValue}
                                 style={[
                                     styles.text,
                                     styles.input,
-                                    isCompleted ? styles.strikeText : styles.unstrikeText
                                 ]}
                                 multiline={true}
                                 returnKeyType={'done'}
@@ -86,9 +64,9 @@ class TodoList extends Component {
                             />
                         ) : (
                                 <Text
+                                    onPress={()=> selectedCategory(textValue)}
                                     style={[
                                         styles.text,
-                                        isCompleted ? styles.strikeText : styles.unstrikeText
                                     ]}
                                 >
                                     {textValue}
@@ -111,7 +89,7 @@ class TodoList extends Component {
                                     <Text style={styles.buttonText}>✏</Text>
                                 </View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPressOut={() => deleteTodo(id)}>
+                            <TouchableOpacity onPressOut={() => deleteCategory(id)}>
                                 <View style={styles.buttonContainer}>
                                     <Text style={styles.buttonText}>❌</Text>
                                 </View>
@@ -133,9 +111,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     text: {
-        fontWeight: '500',
-        fontSize: 18,
+        fontWeight: 'bold',
+        fontSize: 20,
         marginVertical: 20,
+        marginLeft: 20,
     },
     circle: {
         width: 30,
@@ -176,4 +155,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default TodoList;
+export default CategoryList;
